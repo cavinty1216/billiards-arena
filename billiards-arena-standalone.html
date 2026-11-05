@@ -3974,6 +3974,11 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
     var dots = $('tut-dots').children;
     for (var d = 0; d < dots.length; d++) dots[d].classList.toggle('done', d <= i);
     $('tut-progress').style.width = Math.round(((i + 1) / T.course.steps.length) * 100) + '%';
+    // where this step's cue ball starts (used to re-spot it in free practice)
+    T.cueStart = null;
+    for (var cs = 0; cs < T.setup.balls.length; cs++) {
+      if (T.setup.balls[cs].id === T.setup.cueId) { T.cueStart = { x: T.setup.balls[cs].x, y: T.setup.balls[cs].y }; break; }
+    }
     setPowerUI('tut-power-fill', 'tut-power-label', 0);
     tutAimState.spinX = 0; tutAimState.spinY = 0; tutSpinPad.reset();
   }
@@ -3998,9 +4003,10 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
       if (ok) {
         T.stepDone = true;
         if (isPractice) {
-          // 연습 모드: 끝내지 않고 랙을 다시 세팅해서 계속 칠 수 있게 한다
-          tutToast('랙을 다시 세팅했어요. 계속 쳐 보세요!', 'good');
-          setTimeout(function () { if (App.tutorial === T) loadTutStep(T.idx); }, 900);
+          // 자유 연습: 공 위치를 그대로 이어 받아 계속 칠 수 있게 한다
+          practiceCarryOver(T, sim);
+          T.waiting = false;
+          tutToast('이어서 쳐 보세요! (처음 배치는 "다시")', 'good', 2000);
           return;
         }
         tutToast('성공! 잘하셨어요 🎉', 'good');
@@ -4011,6 +4017,38 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
         loadTutStep(T.idx);   // reset balls
       }
     });
+  }
+
+  /* Free practice: carry the shot's final ball states into the practice setup so
+   * the next shot continues from where the balls stopped. A potted cue ball is
+   * re-spotted at its starting position. */
+  function practiceCarryOver(T, sim) {
+    var balls = T.setup.balls;
+    var out = sim.balls;
+    for (var i = 0; i < balls.length && i < out.length; i++) {
+      var s = out[i];
+      var b = balls[i];
+      b.x = s.x; b.y = s.y;
+      b.vx = 0; b.vy = 0;
+      b.spinX = 0; b.spinY = 0;
+      b.active = s.active;
+      b.pocketed = !!s.pocketed;
+    }
+    var cue = null;
+    for (var j = 0; j < balls.length; j++) if (balls[j].id === T.setup.cueId) cue = balls[j];
+    if (cue && !cue.active && T.cueStart) {
+      var fake = { table: T.setup.table, mode: '8ball', balls: balls };
+      var spot = BA.rules.legalCueSpot(fake, 0, T.cueStart.x, T.cueStart.y);
+      var tries = [{ dx: 0, dy: 0.12 }, { dx: 0, dy: -0.12 }, { dx: 0.12, dy: 0 }, { dx: -0.12, dy: 0 }, { dx: 0.1, dy: 0.1 }, { dx: -0.1, dy: -0.1 }];
+      for (var k = 0; !spot && k < tries.length; k++) {
+        spot = BA.rules.legalCueSpot(fake, 0, T.cueStart.x + tries[k].dx, T.cueStart.y + tries[k].dy);
+      }
+      if (!spot) spot = { x: T.cueStart.x, y: T.cueStart.y };
+      cue.x = spot.x; cue.y = spot.y;
+      cue.active = true;
+      cue.pocketed = false;
+    }
+    return balls;
   }
 
   function playTutFrames(frames, events, table, done) {
@@ -4388,7 +4426,7 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
         steps: [{
           title: '자유 연습',
           goal: null,
-          body: '<p>원하는 만큼 자유롭게 쳐 보세요. 랙이 다시 세팅됩니다.</p>',
+          body: '<p>원하는 만큼 자유롭게 쳐 보세요. 공 위치는 그대로 이어져서 계속 칠 수 있어요.</p><p>처음 배치로 돌아가려면 <b>다시</b>를 누르세요.</p>',
           setup: function () { return { table: 'pool', balls: BA.rules.setup8Ball(), cueId: 'cue' }; },
           check: function () { return true; }
         }]
