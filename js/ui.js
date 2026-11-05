@@ -274,10 +274,14 @@
     setTimeout(function () { $('input-name').focus(); }, 60);
   }
   function confirmName() {
-    var v = $('input-name').value.trim().slice(0, 10) || '플레이어';
-    storage.set('ba.name', v);
-    $('name-overlay').hidden = true;
-    if (pendingNameAction) { var f = pendingNameAction; pendingNameAction = null; f(v); }
+    try {
+      var v = $('input-name').value.trim().slice(0, 10) || '플레이어';
+      storage.set('ba.name', v);
+      $('name-overlay').hidden = true;
+      if (pendingNameAction) { var f = pendingNameAction; pendingNameAction = null; f(v); }
+    } catch (e) {
+      try { (window.__baDbg = window.__baDbg || []).push({ tag: 'confirmName-err', d: e.message + ' | ' + e.stack }); } catch (x) {}
+    }
   }
 
   /* ================================================== AIMING / CONTROLS */
@@ -1059,6 +1063,12 @@
 
   /* ================================================== BOOT */
   function boot() {
+    global.addEventListener('error', function (e) {
+      try { (window.__baDbg = window.__baDbg || []).push({ t: new Date().toISOString().slice(17, 23), tag: 'ERROR', d: e.message + ' @ ' + (e.filename || '').split('/').pop() + ':' + e.lineno }); } catch (x) {}
+    });
+    global.addEventListener('unhandledrejection', function (e) {
+      try { (window.__baDbg = window.__baDbg || []).push({ t: new Date().toISOString().slice(17, 23), tag: 'REJECT', d: e.reason && e.reason.message ? e.reason.message : String(e.reason).slice(0, 120) }); } catch (x) {}
+    });
     wire();
     showScreen('home');
     requestAnimationFrame(loop);
