@@ -709,6 +709,7 @@
       askName(function (name) { createRoom(name); });
     });
     $('btn-join').addEventListener('click', function () {
+      try { (window.__baDbg = window.__baDbg || []).push({ tag: 'click-join', d: $('input-code').value }); } catch (e) {}
       var code = $('input-code').value.trim();
       if (!code) { $('input-code').focus(); return; }
       askName(function (name) { joinRoom(name, code.toUpperCase()); });
@@ -917,6 +918,7 @@
 
   /* ================================================== ROOM ACTIONS */
   function createRoom(name) {
+    try { (window.__baDbg = window.__baDbg || []).push({ tag: 'createRoom', d: App.mode }); } catch (e) {}
     $('btn-create').disabled = true;
     toast('방을 만드는 중…');
     var room = new BA.net.Room({
@@ -949,6 +951,7 @@
   }
 
   function joinRoom(name, code) {
+    try { (window.__baDbg = window.__baDbg || []).push({ tag: 'joinRoom', d: code }); } catch (e) {}
     var hint = 0;
     try {
       var params = new URLSearchParams(location.search);
