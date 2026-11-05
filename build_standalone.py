@@ -9,9 +9,10 @@ css = (root / 'css' / 'style.css').read_text(encoding='utf-8')
 html = html.replace('<link rel="stylesheet" href="css/style.css">',
                     '<style>\n' + css + '\n</style>')
 
-scripts = re.findall(r'<script src="([^"]+)"></script>', html)
+scripts = re.findall(r'<script src="([^"]+)"', html)
 for src in scripts:
-    js = (root / src).read_text(encoding='utf-8')
+    src_clean = src.split('?')[0]
+    js = (root / src_clean).read_text(encoding='utf-8')
     tag = '<script src="{0}"></script>'.format(src)
     assert '</script>' not in js, src
     html = html.replace(tag, '<script>\n' + js + '\n</script>')
