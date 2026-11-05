@@ -1994,8 +1994,7 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
   };
 
   Room.prototype._send = function (msg) {
-    dbg('tx', msg.t + (msg.to ? ' to=' + String(msg.to).slice(0, 4) : ''));
-    if (!this.client || !this.topic) { dbg('tx-drop', 'no client/topic'); return; }
+    if (!this.client || !this.topic) { dbg('tx-drop', msg.t); return; }
     this.client.publish(this.topic, JSON.stringify(msg));
   };
 
@@ -2121,7 +2120,6 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
 
   /* -------------------------------------------------------------- messages */
   Room.prototype._onMessage = function (msg) {
-    dbg('rx', msg.t + (msg.from ? ' from=' + String(msg.from).slice(0, 4) : '') + (msg.to ? ' to=' + String(msg.to).slice(0, 4) : ''));
     if (msg.from && msg.from === this.me.id && msg.t !== 'room') return; // own echo
     if (this.isHost) return this._hostInbox(msg);
     return this._guestInbox(msg);
@@ -2145,12 +2143,31 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
           this.emit('notice', existing.name + '님이 다시 들어왔어요');
           return;
         }
+        if (r.started) {
+          /* Reconnect support: a player who refreshed the page returns with a
+           * new id. Let them claim a vacant seat instead of being locked out
+           * of a running game. */
+          var vacant = null;
+          for (var vi = 0; vi < r.players.length; vi++) {
+            if (!r.players[vi].connected) { vacant = r.players[vi]; break; }
+          }
+          if (vacant) {
+            vacant.id = msg.from;
+            vacant.name = (msg.name || vacant.name).slice(0, 12);
+            vacant.connected = true;
+            this.seen[msg.from] = now();
+            this._send({ t: 'welcome', to: msg.from, key: this.key, room: this._snap(), you: vacant.seat });
+            this.broadcast();
+            this.emit('notice', vacant.name + '님이 경기에 다시 합류했어요');
+            return;
+          }
+          if (r.variant === '1v1') {
+            this._send({ t: 'deny', to: msg.from, reason: '경기가 진행 중이에요. 한 판 끝나고 다시 들어와 주세요' });
+            return;
+          }
+        }
         if (r.players.length >= r.maxPlayers) {
           this._send({ t: 'deny', to: msg.from, reason: '정원(' + r.maxPlayers + '명)이 가득 찼어요' });
-          return;
-        }
-        if (r.started && r.variant === '1v1') {
-          this._send({ t: 'deny', to: msg.from, reason: '이미 경기가 시작됐어요. 끝난 뒤에 다시 들어와 주세요' });
           return;
         }
         var seat = r.players.length;
