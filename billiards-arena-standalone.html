@@ -4005,6 +4005,7 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
         if (isPractice) {
           // 자유 연습: 공 위치를 그대로 이어 받아 계속 칠 수 있게 한다
           practiceCarryOver(T, sim);
+          App.tutView = T.setup.balls.map(function (b) { return Object.assign({}, b); });   // 재배치된 수구도 바로 보이게
           T.waiting = false;
           tutToast('이어서 쳐 보세요! (처음 배치는 "다시")', 'good', 2000);
           return;
