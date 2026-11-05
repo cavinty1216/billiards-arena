@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0e12">
+<title>BILLIARDS ARENA — 온라인 당구</title>
+<meta name="description" content="방 코드로 친구와 함께 즐기는 온라인 당구. 사구(4구), 포켓 8볼, 3~4인 개인전과 입문 튜토리얼.">
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%230d6b45'/%3E%3Ccircle cx='32' cy='32' r='14' fill='%23fff'/%3E%3Ctext x='32' y='39' font-size='18' text-anchor='middle' font-family='Arial' fill='%23111'%3E8%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+<div id="app">
+
+  <!-- ================================================== HOME -->
+  <section class="screen" id="screen-home">
+    <div class="home-inner">
+      <header class="home-head">
+        <div class="brand">
+          <div class="brand-mark"><span>8</span></div>
+          <div>
+            <h1>BILLIARDS <em>ARENA</em></h1>
+            <p class="tagline">방 코드 하나로, 친구와 진짜 온라인 당구</p>
+          </div>
+        </div>
+      </header>
+
+      <div class="home-grid">
+        <div class="card card-online">
+          <div class="card-head">
+            <span class="pill live">온라인 대전</span>
+            <h2>친구와 방 코드로 대결</h2>
+            <p>방을 만들면 5자리 코드가 나와요. 친구는 그 코드로 들어오면 끝.</p>
+          </div>
+          <div class="mode-picker" id="mode-picker">
+            <button class="mode-btn active" data-mode="4ball" data-variant="1v1">
+              <strong>사구 4구</strong><span>1 : 1</span>
+            </button>
+            <button class="mode-btn" data-mode="8ball" data-variant="1v1">
+              <strong>포켓 8볼</strong><span>1 : 1 정식</span>
+            </button>
+            <button class="mode-btn" data-mode="8ball" data-variant="ffa">
+              <strong>8볼 스코어전</strong><span>3~4인 개인전</span>
+            </button>
+          </div>
+          <div class="row">
+            <button class="btn primary" id="btn-create">방 만들기</button>
+            <div class="join-box">
+              <input id="input-code" class="code-input" inputmode="latin" autocomplete="off" autocapitalize="characters" maxlength="6" placeholder="방 코드">
+              <button class="btn ghost" id="btn-join">입장</button>
+            </div>
+          </div>
+          <p class="hint" id="home-hint">계정 없이 바로 시작 · 설치 없이 폰·태블릿·PC에서</p>
+          <p class="hint warn-note">온라인 대전은 무료 공개 테스트 서버를 거쳐 연결되는 시험판이에요. 방 코드는 비밀번호가 아니고, 닉네임에 실명이나 개인정보는 쓰지 마세요.</p>
+        </div>
+
+        <div class="card card-learn">
+          <div class="card-head">
+            <span class="pill">튜토리얼</span>
+            <h2>당구가 처음이어도</h2>
+            <p>4구와 8볼의 규칙을 한 단계씩 직접 쳐보며 배워요.</p>
+          </div>
+          <button class="lesson-row" data-lesson="4ball">
+            <span class="lesson-icon green">4</span>
+            <span class="lesson-text"><strong>사구(4구) 배우기</strong><small>7단계 · 점수 내는 법까지</small></span>
+            <span class="chev">›</span>
+          </button>
+          <button class="lesson-row" data-lesson="8ball">
+            <span class="lesson-icon blue">8</span>
+            <span class="lesson-text"><strong>포켓 8볼 배우기</strong><small>7단계 · 파울과 승리 조건</small></span>
+            <span class="chev">›</span>
+          </button>
+          <button class="lesson-row" data-lesson="practice">
+            <span class="lesson-icon dark">∞</span>
+            <span class="lesson-text"><strong>혼자 연습</strong><small>원하는 만큼 자유롭게 쳐보기</small></span>
+            <span class="chev">›</span>
+          </button>
+        </div>
+      </div>
+
+      <footer class="home-foot">
+        <span>📱 폰 · 태블릿 · 💻 컴퓨터 모두 지원</span>
+        <span class="dot-sep">·</span>
+        <span>무료 공개 서버로 연결</span>
+      </footer>
+    </div>
+  </section>
+
+  <!-- ================================================== LOBBY -->
+  <section class="screen" id="screen-lobby">
+    <div class="topbar">
+      <button class="icon-btn" id="lobby-leave" aria-label="나가기">✕</button>
+      <div class="topbar-title">대기실</div>
+      <div class="conn" id="lobby-conn"><span class="conn-dot"></span><span class="conn-text">연결 중</span></div>
+    </div>
+    <div class="lobby-inner">
+      <div class="room-code-card">
+        <div class="room-code-label">방 코드</div>
+        <div class="room-code" id="room-code">-----</div>
+        <div class="room-code-actions">
+          <button class="btn small ghost" id="btn-copy-code">코드 복사</button>
+          <button class="btn small ghost" id="btn-share-link">링크 복사</button>
+        </div>
+        <p class="hint" id="lobby-link-hint">친구에게 코드를 알려주세요</p>
+      </div>
+
+      <div class="lobby-players">
+        <div class="section-title">참가자 <span id="player-count">1/2</span></div>
+        <div id="lobby-player-list" class="player-list"></div>
+      </div>
+
+      <div class="lobby-config" id="lobby-config">
+        <div class="section-title">게임</div>
+        <div class="mode-picker compact" id="lobby-mode-picker">
+          <button class="mode-btn" data-mode="4ball" data-variant="1v1"><strong>사구 4구</strong><span>1:1</span></button>
+          <button class="mode-btn" data-mode="8ball" data-variant="1v1"><strong>포켓 8볼</strong><span>1:1</span></button>
+          <button class="mode-btn" data-mode="8ball" data-variant="ffa"><strong>8볼 스코어전</strong><span>3~4인</span></button>
+        </div>
+        <p class="rule-note" id="lobby-rule-note"></p>
+      </div>
+
+      <div class="lobby-actions">
+        <button class="btn primary wide" id="btn-start">게임 시작</button>
+        <div class="waiting-note" id="lobby-waiting">친구를 기다리는 중…</div>
+        <p class="hint">공개 테스트 서버 사용 · 닉네임에 실명·개인정보 금지</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================== GAME -->
+  <section class="screen" id="screen-game">
+    <div class="topbar">
+      <button class="icon-btn" id="game-leave" aria-label="나가기">✕</button>
+      <div class="topbar-title"><span id="game-room-code">-----</span></div>
+      <div class="conn" id="game-conn"><span class="conn-dot"></span><span class="conn-text">연결 중</span></div>
+    </div>
+
+    <div class="scorebar" id="scorebar"></div>
+
+    <div class="table-wrap" id="table-wrap">
+      <canvas id="table-canvas"></canvas>
+      <div class="toast" id="toast"></div>
+      <div class="turn-banner" id="turn-banner"></div>
+    </div>
+
+    <div class="controls" id="controls">
+      <div class="controls-main">
+        <div class="power-meter" aria-hidden="true">
+          <div class="power-fill" id="power-fill"></div>
+          <div class="power-label" id="power-label">세기 0%</div>
+        </div>
+        <div class="spin-box">
+          <div class="spin-title">당점</div>
+          <canvas id="spin-pad" width="160" height="160"></canvas>
+        </div>
+        <div class="shot-btns">
+          <button class="btn primary" id="btn-shoot">샷</button>
+          <button class="btn ghost small" id="btn-cancel">취소</button>
+        </div>
+      </div>
+      <div class="quickbar">
+        <button class="chip" data-emote="👍">👍</button>
+        <button class="chip" data-emote="😅">😅</button>
+        <button class="chip" data-emote="🔥">🔥</button>
+        <button class="chip" data-emote="GG">GG</button>
+        <button class="chip" data-emote="기다려줘">기다려줘</button>
+        <span class="spacer"></span>
+        <button class="chip" id="btn-rules">규칙</button>
+        <button class="chip" id="btn-guide" aria-pressed="true">가이드</button>
+        <button class="chip" id="btn-sound" aria-pressed="true">소리</button>
+      </div>
+    </div>
+
+    <div class="overlay" id="game-over" hidden>
+      <div class="overlay-card">
+        <div class="trophy" id="go-trophy">🏆</div>
+        <h2 id="go-title">경기 종료</h2>
+        <p id="go-sub"></p>
+        <div class="go-scores" id="go-scores"></div>
+        <button class="btn primary wide" id="btn-rematch">다시 한 판</button>
+        <button class="btn ghost wide" id="btn-go-lobby">대기실로</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================== TUTORIAL -->
+  <section class="screen" id="screen-tutorial">
+    <div class="topbar">
+      <button class="icon-btn" id="tut-leave" aria-label="나가기">✕</button>
+      <div class="topbar-title" id="tut-course-name">사구 배우기</div>
+      <div class="step-dots" id="tut-dots"></div>
+    </div>
+    <div class="tut-progress"><div class="tut-progress-fill" id="tut-progress"></div></div>
+
+    <div class="table-wrap" id="tut-table-wrap">
+      <canvas id="tut-canvas"></canvas>
+      <div class="toast" id="tut-toast"></div>
+      <div class="tut-card" id="tut-card">
+        <div class="tut-step-label" id="tut-step-label">1 / 7</div>
+        <h2 id="tut-title"></h2>
+        <div class="tut-body" id="tut-body"></div>
+        <div class="tut-actions">
+          <button class="btn primary" id="tut-next">다음</button>
+          <button class="btn ghost" id="tut-retry">다시</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls compact" id="tut-controls">
+      <div class="controls-main">
+        <div class="power-meter" aria-hidden="true">
+          <div class="power-fill" id="tut-power-fill"></div>
+          <div class="power-label" id="tut-power-label">세기 0%</div>
+        </div>
+        <div class="spin-box">
+          <div class="spin-title">당점</div>
+          <canvas id="tut-spin-pad" width="160" height="160"></canvas>
+        </div>
+        <div class="shot-btns">
+          <button class="btn primary" id="tut-shoot">샷</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================== NAME MODAL -->
+  <div class="overlay" id="name-overlay" hidden>
+    <div class="overlay-card">
+      <h2 id="name-title">닉네임</h2>
+      <p>친구에게 보일 이름이에요. 실명이나 개인정보는 쓰지 마세요.</p>
+      <input class="code-input name-input" id="input-name" maxlength="10" placeholder="예: 당구왕" autocomplete="off">
+      <button class="btn primary wide" id="btn-name-ok">시작하기</button>
+      <button class="btn ghost wide" id="btn-name-cancel">취소</button>
+    </div>
+  </div>
+
+  <!-- ================================================== RULES SHEET -->
+  <div class="overlay" id="rules-overlay" hidden>
+    <div class="overlay-card rules-card">
+      <h2 id="rules-title">적용 규칙</h2>
+      <div class="rules-body" id="rules-body"></div>
+      <button class="btn ghost wide" id="btn-rules-close">닫기</button>
+    </div>
+  </div>
+
+  <!-- ================================================== BOOT -->
+  <div class="boot" id="boot">
+    <div class="boot-inner">
+      <div class="brand-mark big"><span>8</span></div>
+      <p id="boot-text">불러오는 중…</p>
+    </div>
+  </div>
+
+</div>
+<script src="js/physics.js"></script>
+<script src="js/rules.js"></script>
+<script src="js/mqtt.js"></script>
+<script src="js/net.js"></script>
+<script src="js/render.js"></script>
+<script src="js/tutorial.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
