@@ -158,6 +158,7 @@
 
   MqttClient.prototype._packet = function (type, body) {
     if (type === 2) { // CONNACK
+      try { (global.__baDbg = global.__baDbg || []).push({ t: new Date().toISOString().slice(17, 23), tag: 'connack', d: body && body.length > 1 ? body[1] : 'short' }); } catch (e) {}
       var rc = body.length > 1 ? body[1] : 1;
       if (rc === 0 && this._resolveConnect) this._resolveConnect();
       else if (this.onerror) this.onerror(new Error('connack ' + rc));

@@ -34,6 +34,13 @@
   }
   function randId() { return randCode(10); }
 
+  function dbg(tag, data) {
+    try {
+      (global.__baDbg = global.__baDbg || []).push({ t: new Date().toISOString().slice(17, 23), tag: tag, d: data === undefined ? '' : data });
+      if (global.__baDbg.length > 60) global.__baDbg.shift();
+    } catch (e) {}
+  }
+
   function now() { return Date.now(); }
 
   function Room(opts) {
@@ -75,9 +82,11 @@
   Room.prototype._connectAt = function (index) {
     var self = this;
     var b = BROKERS[index];
+    dbg('connect', b ? b.url : 'none');
     if (!b) return Promise.reject(new Error('연결 서버 없음'));
     var c = new BA.MqttClient(b.url, { clientId: 'ba_' + self.me.id + '_' + Math.random().toString(36).slice(2, 6), timeout: 7000 });
     return c.connect().then(function () {
+      dbg('connected', b.name);
       self.client = c;
       self.brokerIndex = index;
       self.brokerName = b.name;
@@ -122,7 +131,8 @@
   };
 
   Room.prototype._send = function (msg) {
-    if (!this.client || !this.topic) return;
+    dbg('tx', msg.t + (msg.to ? ' to=' + String(msg.to).slice(0, 4) : ''));
+    if (!this.client || !this.topic) { dbg('tx-drop', 'no client/topic'); return; }
     this.client.publish(this.topic, JSON.stringify(msg));
   };
 
@@ -248,6 +258,7 @@
 
   /* -------------------------------------------------------------- messages */
   Room.prototype._onMessage = function (msg) {
+    dbg('rx', msg.t + (msg.from ? ' from=' + String(msg.from).slice(0, 4) : '') + (msg.to ? ' to=' + String(msg.to).slice(0, 4) : ''));
     if (msg.from && msg.from === this.me.id && msg.t !== 'room') return; // own echo
     if (this.isHost) return this._hostInbox(msg);
     return this._guestInbox(msg);
@@ -649,6 +660,7 @@
     Room: Room,
     BROKERS: BROKERS,
     randCode: randCode,
-    PREFIX: PREFIX
+    PREFIX: PREFIX,
+    dbg: function () { return (global.__baDbg || []).slice(); }
   };
 })(typeof window !== 'undefined' ? window : globalThis);
