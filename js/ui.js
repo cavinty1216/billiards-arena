@@ -365,6 +365,46 @@
   function setupSpinPad(canvas, state) {
     var ctx = canvas.getContext('2d');
     var R = 80;
+    var expanded = false;
+    var backdrop = null, hint = null;
+    function ensureOverlay() {
+      if (backdrop) return;
+      backdrop = document.createElement('div');
+      backdrop.className = 'spin-backdrop';
+      document.body.appendChild(backdrop);
+      hint = document.createElement('div');
+      hint.className = 'spin-hint';
+      hint.textContent = '원하는 점을 눌러 당점을 정하고, 바깥을 누르면 닫혀요';
+      document.body.appendChild(hint);
+      backdrop.addEventListener('mousedown', collapse);
+      backdrop.addEventListener('touchstart', function (e) { collapse(); e.preventDefault(); }, { passive: false });
+    }
+    function expand() {
+      if (expanded) return;
+      expanded = true;
+      ensureOverlay();
+      canvas.classList.add('expanded');
+      backdrop.classList.add('show');
+      hint.classList.add('show');
+      draw();
+    }
+    function collapse() {
+      if (!expanded) return;
+      expanded = false;
+      canvas.classList.remove('expanded');
+      if (backdrop) backdrop.classList.remove('show');
+      if (hint) hint.classList.remove('show');
+      draw();
+    }
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') collapse(); });
+    (function watchScreen() {
+      var screen = canvas.closest ? canvas.closest('.screen') : null;
+      if (screen && window.MutationObserver) {
+        new MutationObserver(function () {
+          if (!screen.classList.contains('active') && expanded) collapse();
+        }).observe(screen, { attributes: true, attributeFilter: ['class'] });
+      }
+    })();
     function draw() {
       ctx.clearRect(0, 0, 160, 160);
       ctx.save();
@@ -396,14 +436,21 @@
       draw();
     }
     var down = false;
-    canvas.addEventListener('touchstart', function (e) { down = true; pick(e); e.preventDefault(); }, { passive: false });
+    canvas.addEventListener('touchstart', function (e) {
+      e.preventDefault();
+      if (!expanded) { expand(); return; }   // 첫 탭: 크게 펼치기 (선택은 다음 터치부터)
+      down = true; pick(e);
+    }, { passive: false });
     canvas.addEventListener('touchmove', function (e) { if (down) { pick(e); e.preventDefault(); } }, { passive: false });
     canvas.addEventListener('touchend', function () { down = false; });
-    canvas.addEventListener('mousedown', function (e) { down = true; pick(e); });
+    canvas.addEventListener('mousedown', function (e) {
+      if (!expanded) { expand(); return; }   // 첫 클릭: 크게 펼치기
+      down = true; pick(e);
+    });
     global.addEventListener('mousemove', function (e) { if (down) pick(e); });
     global.addEventListener('mouseup', function () { down = false; });
     draw();
-    return { draw: draw, reset: function () { state.spinX = 0; state.spinY = 0; draw(); } };
+    return { draw: draw, reset: function () { state.spinX = 0; state.spinY = 0; draw(); }, collapse: collapse };
   }
 
   function setPowerUI(fillId, labelId, p) {
