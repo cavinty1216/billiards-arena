@@ -43,7 +43,9 @@
     var rotH = rot ? contentW : contentH;
     this.cam = {
       scale: scale,
-      ox: (w - rotW * scale) / 2,
+      // for the rotated case the canvas rotate(π/2) maps (px,py) → (-py,px),
+      // so ox keeps the strip [ox - Hc·s, ox] centered horizontally
+      ox: rot ? (w + rotW * scale) / 2 : (w - rotW * scale) / 2,
       oy: (h - rotH * scale) / 2,
       rot: rot,
       rail: rail
@@ -55,20 +57,22 @@
     var c = this.cam;
     var px = c.rail + x, py = c.rail + y;
     if (c.rot) {
-      var nx = py, ny = px;
-      return { x: c.ox + nx * c.scale, y: c.oy + ny * c.scale };
+      // 90° canvas rotation: screen = (ox - py·s, oy + px·s)
+      return { x: c.ox - py * c.scale, y: c.oy + px * c.scale };
     }
     return { x: c.ox + px * c.scale, y: c.oy + py * c.scale };
   };
 
   Renderer.prototype.toWorld = function (sx, sy) {
     var c = this.cam;
-    var px = (sx - c.ox) / c.scale;
-    var py = (sy - c.oy) / c.scale;
-    var x, y;
-    if (c.rot) { x = py - c.rail; y = px - c.rail; }
-    else { x = px - c.rail; y = py - c.rail; }
-    return { x: x, y: y };
+    if (c.rot) {
+      var px = (sy - c.oy) / c.scale;
+      var py = (c.ox - sx) / c.scale;
+      return { x: px - c.rail, y: py - c.rail };
+    }
+    var px2 = (sx - c.ox) / c.scale;
+    var py2 = (sy - c.oy) / c.scale;
+    return { x: px2 - c.rail, y: py2 - c.rail };
   };
 
   Renderer.prototype.begin = function (table) {
