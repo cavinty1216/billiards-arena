@@ -3192,10 +3192,13 @@
       backdrop.addEventListener('mousedown', collapse);
       backdrop.addEventListener('touchstart', function (e) { collapse(); e.preventDefault(); }, { passive: false });
     }
+    var parent = null, next = null;
     function expand() {
       if (expanded) return;
       expanded = true;
       ensureOverlay();
+      parent = canvas.parentNode; next = canvas.nextSibling;
+      document.body.appendChild(canvas);   // .controls의 backdrop-filter가 fixed 기준을 바꾸므로 body로 옮겨 화면 중앙에 펼침
       canvas.classList.add('expanded');
       backdrop.classList.add('show');
       hint.classList.add('show');
@@ -3205,6 +3208,7 @@
       if (!expanded) return;
       expanded = false;
       canvas.classList.remove('expanded');
+      if (parent) parent.insertBefore(canvas, next);
       if (backdrop) backdrop.classList.remove('show');
       if (hint) hint.classList.remove('show');
       draw();
