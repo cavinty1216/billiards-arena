@@ -642,15 +642,15 @@
   Room.prototype.leave = function () {
     this.dead = true;
     for (var i = 0; i < this.timers.length; i++) clearInterval(this.timers[i]);
+    var myId = this.me.id;
     if (this.room && this.isHost) {
-      this._send({ t: 'bye', from: this.me.id, key: this.key });
-      // hand the room over cleanly if anyone is here
-      var others = this.room.players.filter(function (p) { return p.connected && p.id !== this.me.id; });
+      this._send({ t: 'bye', from: myId, key: this.key });
+      var others = this.room.players.filter(function (p) { return p.connected && p.id !== myId; });
       if (others.length) {
-        this._send({ t: 'notice', from: this.me.id, key: this.key, text: '방장이 방을 떠났어요. 다음 사람이 이어서 진행합니다.' });
+        this._send({ t: 'notice', from: myId, key: this.key, text: '방장이 방을 떠났어요. 다음 사람이 이어서 진행합니다.' });
       }
     } else if (this.room) {
-      this._send({ t: 'bye', from: this.me.id, key: this.key });
+      this._send({ t: 'bye', from: myId, key: this.key });
     }
     if (this.client) this.client.close();
     this._setStatus('left', '나갔습니다');
