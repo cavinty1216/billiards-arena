@@ -334,7 +334,7 @@
         this.room = msg.room;
         this.hostId = msg.room.hostId;
         this.lastHostSeen = now();
-        this.mySeat = msg.you;
+        this.seatNo = msg.you;
         this._setStatus(this.room.started ? 'playing' : 'lobby', this.room.started ? '경기 중' : '방에 들어왔어요');
         this.emit('room', this.snapshot());
         if (this._joinResolve) this._joinResolve(true);
@@ -358,7 +358,7 @@
         var prevHost = this.hostId;
         this.room = msg.room;
         this.hostId = msg.room.hostId;
-        for (var i = 0; i < this.room.players.length; i++) if (this.room.players[i].id === this.me.id) this.mySeat = this.room.players[i].seat;
+        for (var i = 0; i < this.room.players.length; i++) if (this.room.players[i].id === this.me.id) this.seatNo = this.room.players[i].seat;
         this._setStatus(this.room.started ? (this.room.game && this.room.game.phase === 'ended' ? 'ended' : 'playing') : 'lobby');
         if (!wasStarted && this.room.started) this.emit('start', this.room);
         this.emit('room', this.snapshot());
@@ -369,7 +369,7 @@
         if (msg.room) {
           if (msg.room.hostId && this.hostId && msg.room.hostId !== this.hostId) return;
           this.room = msg.room;
-          for (var j = 0; j < this.room.players.length; j++) if (this.room.players[j].id === this.me.id) this.mySeat = this.room.players[j].seat;
+          for (var j = 0; j < this.room.players.length; j++) if (this.room.players[j].id === this.me.id) this.seatNo = this.room.players[j].seat;
         }
         this.emit('result', { room: this.snapshot(), result: msg.result });
         return;
