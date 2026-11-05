@@ -3967,9 +3967,10 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
     $('tut-step-label').textContent = (i + 1) + ' / ' + T.course.steps.length;
     $('tut-title').textContent = step.title;
     $('tut-body').innerHTML = (step.goal ? '<div class="goal-badge">🎯 ' + step.goal + '</div>' : '') + step.body + (step.hint ? '<p style="margin-top:8px;opacity:.75">💡 ' + step.hint + '</p>' : '');
+    var isPractice = T.course.id === 'practice';
     $('tut-next').textContent = step.goal ? '건너뛰기' : '다음';
-    $('tut-next').hidden = false;
-    $('tut-retry').style.display = step.goal ? '' : 'none';
+    $('tut-next').hidden = isPractice;          // 연습은 '다음'이 없다 — 나가기는 왼쪽 위 ✕
+    $('tut-retry').style.display = (step.goal || isPractice) ? '' : 'none';
     var dots = $('tut-dots').children;
     for (var d = 0; d < dots.length; d++) dots[d].classList.toggle('done', d <= i);
     $('tut-progress').style.width = Math.round(((i + 1) / T.course.steps.length) * 100) + '%';
@@ -3981,7 +3982,8 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
     var T = App.tutorial;
     if (!T || T.waiting) return;
     var step = T.course.steps[T.idx];
-    if (!step.goal) return;
+    var isPractice = T.course.id === 'practice';
+    if (!isPractice && !step.goal) return;   // tutorial info steps: read only
     shot.spinX = tutAimState.spinX;
     shot.spinY = tutAimState.spinY;
     shot.cueId = T.setup.cueId;
@@ -3995,7 +3997,13 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
       var ok = step.check ? step.check(shot, sim) : true;
       if (ok) {
         T.stepDone = true;
-        tutToast(step.goal ? '성공! 잘하셨어요 🎉' : '', 'good');
+        if (isPractice) {
+          // 연습 모드: 끝내지 않고 랙을 다시 세팅해서 계속 칠 수 있게 한다
+          tutToast('랙을 다시 세팅했어요. 계속 쳐 보세요!', 'good');
+          setTimeout(function () { if (App.tutorial === T) loadTutStep(T.idx); }, 900);
+          return;
+        }
+        tutToast('성공! 잘하셨어요 🎉', 'good');
         $('tut-next').textContent = '다음 단계 →';
       } else {
         T.waiting = false;
@@ -4249,6 +4257,7 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
     $('tut-next').addEventListener('click', function () {
       var T = App.tutorial;
       if (!T) return;
+      if (T.course.id === 'practice') { loadTutStep(T.idx); return; }   // 연습은 끝내지 않음
       if (T.idx + 1 < T.course.steps.length) loadTutStep(T.idx + 1);
       else { App.tutorial = null; showScreen('home'); }
     });
