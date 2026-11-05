@@ -1978,7 +1978,7 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
     this.client._onResubscribe = function () {
       self.client.subscribe(self.topic);
       if (self.isHost) setTimeout(function () { self.broadcast(); }, 300);
-      else self._send({ t: 'hello', from: self.me.id, name: self.me.name, key: self.key });
+      else self._send({ t: 'hello', from: self.me.id, name: self.me.name });
       self.emit('status', { state: self.isHost ? 'host' : 'guest', text: '다시 연결됐어요' });
     };
   };
@@ -2078,7 +2078,7 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
             if (!settled) { settled = true; resolve(false); }
           }, 3000);
           var tryHello = function () {
-            self._send({ t: 'hello', from: self.me.id, name: self.me.name, key: self.key, ver: 2 });
+            self._send({ t: 'hello', from: self.me.id, name: self.me.name, ver: 2 });
           };
           tryHello();
           setTimeout(tryHello, 1000);
@@ -2119,7 +2119,8 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
     var self = this;
     switch (msg.t) {
       case 'hello': {
-        if (msg.key && msg.key !== this.key) return;
+        // The room code is the gate; a hello from a stranger simply means a
+        // new player wants in. (The per-room key only filters other messages.)
         var r = this.room;
         if (!r) return;
         var existing = r.players.filter(function (p) { return p.id === msg.from; })[0];
@@ -2143,7 +2144,6 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
         var seat = r.players.length;
         r.players.push({ id: msg.from, name: (msg.name || '플레이어').slice(0, 12), seat: seat, connected: true, ready: false });
         this.seen[msg.from] = now();
-        this.key = this.key; // unchanged
         this._send({ t: 'welcome', to: msg.from, key: this.key, room: this._snap(), you: seat });
         this.broadcast();
         this.emit('notice', (msg.name || '플레이어') + '님이 들어왔어요');
