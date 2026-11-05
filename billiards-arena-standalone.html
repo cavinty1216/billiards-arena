@@ -167,7 +167,8 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
 }
 .pill.live { color: #8ef0bf; background: rgba(26, 158, 108, 0.16); border-color: rgba(26, 158, 108, 0.45); }
 
-.mode-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.mode-picker { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.mode-picker.three-col { grid-template-columns: repeat(3, 1fr); }
 .mode-btn {
   border-radius: 13px;
   padding: 11px 8px;
@@ -590,6 +591,9 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
             <button class="mode-btn" data-mode="8ball" data-variant="ffa">
               <strong>8볼 스코어전</strong><span>3~4인 개인전</span>
             </button>
+            <button class="mode-btn" data-mode="4ball" data-variant="ffa">
+              <strong>사구 스코어전</strong><span>3~4인 개인전</span>
+            </button>
           </div>
           <div class="row">
             <button class="btn primary" id="btn-create">방 만들기</button>
@@ -663,6 +667,7 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
           <button class="mode-btn" data-mode="4ball" data-variant="1v1"><strong>사구 4구</strong><span>1:1</span></button>
           <button class="mode-btn" data-mode="8ball" data-variant="1v1"><strong>포켓 8볼</strong><span>1:1</span></button>
           <button class="mode-btn" data-mode="8ball" data-variant="ffa"><strong>8볼 스코어전</strong><span>3~4인</span></button>
+          <button class="mode-btn" data-mode="4ball" data-variant="ffa"><strong>사구 스코어전</strong><span>3~4인</span></button>
         </div>
         <p class="rule-note" id="lobby-rule-note"></p>
       </div>
@@ -1214,8 +1219,11 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
 <script>
 /* Billiards Arena — game rules
  * Two games:
- *   4ball  : Korean four-ball carom (사구). 1 vs 1 only — the real game has two
- *            cue balls, one per player, so a 3-4 player version cannot exist.
+ *   4ball  : Korean four-ball carom (사구). 1v1 uses the simplified house
+ *            rules shown in the app. 3-4 players share the two cue balls in a
+ *            clearly-labelled app-only score variant (state.ffa): seat 0/2
+ *            shoot the white cue, seat 1/3 the yellow one. It is NOT the
+ *            standard two-player carom game and must never be presented as one.
  *   8ball  : pocket billiards. 1v1 uses the standard solids/stripes + 8-ball
  *            rules (simplified: no called shots). 3-4 players use a separate
  *            individual score mode, clearly marked as this app's own variant.
@@ -1289,6 +1297,7 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
         balls: setup4Ball(),
         phase: 'aim',
         turn: 0,
+        ffa: false,
         scores: { 0: 0, 1: 0 },
         shotNo: 0,
         message: '내 공으로 빨간 두 공을 모두 맞히면 1점! (쿠션을 먼저 맞히면 2점)',
@@ -1387,6 +1396,10 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
       state.message = msg + ' 🏆 ' + target + '점 달성, 승리!';
     } else {
       if (!keepTurn) state.turn = (seat + 1) % playerCount;
+      if (state.ffa && !keepTurn) {
+        var nextCue = cueIdFor(state, state.turn);
+        msg += ' (다음 수구: ' + (nextCue === 'white' ? '흰 공' : '노란 공') + ')';
+      }
       state.message = msg;
     }
     state.details = {
@@ -1616,7 +1629,10 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
   }
 
   function cueIdFor(state, seat) {
-    if (state.mode === '4ball') return seat === 0 ? 'white' : 'yellow';
+    if (state.mode === '4ball') {
+      if (state.ffa) return seat % 2 === 0 ? 'white' : 'yellow';
+      return seat === 0 ? 'white' : 'yellow';
+    }
     return 'cue';
   }
 
@@ -2385,7 +2401,7 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
         phase: r.game.phase, turn: r.game.turn, scores: r.game.scores,
         groups: r.game.groups, shotNo: r.game.shotNo, message: r.game.message,
         winner: r.game.winner, ballsInHand: r.game.ballsInHand,
-        details: r.game.details, target: r.game.target
+        details: r.game.details, target: r.game.target, ffa: !!r.game.ffa
       } : null
     };
   };
@@ -2424,7 +2440,8 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
     r.started = true;
     r.game = BA.rules.newGameState(r.mode);
     r.variant = r.players.length > 2 ? 'ffa' : r.variant;
-    r.maxPlayers = r.mode === '4ball' ? 2 : (r.maxPlayers || 4);
+    r.maxPlayers = r.players.length > 2 ? 4 : (r.mode === '4ball' ? 2 : (r.maxPlayers || 2));
+    if (r.mode === '4ball') r.game.ffa = r.players.length > 2;
     r.game.turn = 0;
     r.game.target = r.mode === '4ball' ? 7 : (r.players.length > 2 ? 9 : 0);
     r.players.forEach(function (p) { p.ready = true; });
@@ -2437,6 +2454,7 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
     if (!this.isHost || !this.room) return;
     var r = this.room;
     r.game = BA.rules.newGameState(r.mode);
+    if (r.mode === '4ball') r.game.ffa = r.players.length > 2;
     r.game.turn = 0;
     r.game.target = r.mode === '4ball' ? 7 : (r.players.length > 2 ? 9 : 0);
     r.seq++;
@@ -3515,7 +3533,7 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
       var sub = '';
       if (g && room.room.mode === '8ball' && groups && groups[p.seat]) sub = groups[p.seat] === 'solid' ? '솔리드' : '스트라이프';
       else if (g && room.room.mode === '8ball' && room.room.variant === '1v1' && !groups[0] && !groups[1]) sub = '그룹 미정';
-      else if (room.room.mode === '4ball') sub = p.seat === 0 ? '흰 공' : '노란 공';
+      else if (room.room.mode === '4ball') sub = (p.seat % 2 === 0) ? '흰 공' : '노란 공';
       html += '<div class="player-chip' + (active ? ' active' : '') + (!p.connected ? ' offline' : '') + '">' +
         '<span class="pc-dot" style="background:' + seatColor(p.seat) + '"></span>' +
         '<span class="pc-name">' + esc(p.name) + (isMe ? ' (나)' : '') + '</span>' +
@@ -3567,6 +3585,7 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
   }
 
   function ruleNote(mode, variant) {
+    if (mode === '4ball' && variant === 'ffa') return '★ 이 앱의 별도 변형 (정식 사구 아님) ★ 수구 2개를 나눠 쓰는 3~4인 개인전: 빨간 두 공 맞히기 1점·쿠션 먼저 2점, 7점 승리.';
     if (mode === '4ball') return '사구는 2인 전용 경기예요. 두 빨간 공을 모두 맞히면 1점(쿠션 먼저 2점), 7점 승리.';
     if (variant === '1v1') return '1:1 정식 룰에 가까운 8볼 — 솔리드/스트라이프 그룹을 정하고 마지막에 8번 공.';
     return '★ 이 앱의 별도 점수전 변형 (정식 규칙 아님) ★ 3~4명이 각자 개인전으로, 공 1개=1점·8번=3점, 9점 승리.';
@@ -3575,7 +3594,16 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
   /* --------------------------------------------------------- rules sheet */
   function rulesHtml(mode, variant) {
     var h = '';
-    if (mode === '4ball') {
+    if (mode === '4ball' && variant === 'ffa') {
+      h += '<h3>사구 스코어전 3~4인 — 이 앱의 변형</h3>' +
+        '<p class="note">정식 사구는 수구 2개를 쓰는 2인 게임이라 3~4인 규칙이 존재하지 않아요. 아래는 이 앱만의 개인전 규칙입니다.</p><ul>' +
+        '<li>수구 2개를 나눠 씁니다: 1·3번 참가자는 <b>흰 공</b>, 2·4번 참가자는 <b>노란 공</b></li>' +
+        '<li>내 차례마다 화면에서 노란 테두리로 표시되는 <b>내 수구</b>를 치세요 (스코어바에도 이번 차례의 수구가 표시됨)</li>' +
+        '<li>내 수구로 빨간 공 2개를 모두 맞히면 <b>1점</b> · 쿠션을 먼저 맞히고 나서 두 개 모두 맞히면 <b>2점</b></li>' +
+        '<li>성공 시 한 번 더 · 실패 시 다음 사람</li>' +
+        '<li>다른 사람의 수구나 상대 수구를 맞혀도 반칙 아님 (1:1 사구의 단순화 규칙과 같음)</li>' +
+        '<li><b>7점</b> 먼저 달성한 사람 승리</li></ul>';
+    } else if (mode === '4ball') {
       h += '<h3>사구(4구) — 2인 전용</h3><ul>' +
         '<li>내 공(흰/노란)으로 빨간 공 2개를 한 번에 모두 맞히면 <b>1점</b></li>' +
         '<li>쿠션을 먼저 맞히고 나서 두 개 모두 맞히면 <b>2점</b></li>' +
@@ -3604,7 +3632,7 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
     var r = App.room && App.room.room;
     var mode = r ? r.mode : App.mode;
     var variant = r ? (r.variant || '1v1') : App.variant;
-    $('rules-title').textContent = mode === '4ball' ? '사구 규칙' : (variant === '1v1' ? '8볼 1:1 규칙' : '8볼 스코어전 규칙');
+    $('rules-title').textContent = mode === '4ball' ? (variant === 'ffa' ? '사구 스코어전 규칙' : '사구 규칙') : (variant === '1v1' ? '8볼 1:1 규칙' : '8볼 스코어전 규칙');
     $('rules-body').innerHTML = rulesHtml(mode, variant);
     $('rules-overlay').hidden = false;
   }
@@ -3771,11 +3799,12 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
     var g = r.game;
     var p = r.players[g.turn];
     var mine = p && p.id === room.me.id;
+    var cueName = (g.mode === '4ball' && g.ffa) ? ((g.turn % 2 === 0) ? '흰 공' : '노란 공') : null;
     el.style.display = '';
     el.className = 'turn-banner' + (mine ? ' mine' : '');
     if (g.ballsInHand) el.textContent = mine ? '큐볼을 테이블에 놓으세요 (원하는 곳을 누르기)' : p.name + '님이 큐볼을 놓는 중';
-    else if (mine) el.textContent = '내 차례 — 조준해서 치세요';
-    else el.textContent = p ? (p.name + '님 차례') : '';
+    else if (mine) el.textContent = cueName ? ('내 차례 — ' + cueName + ' 수구로 조준하세요') : '내 차례 — 조준해서 치세요';
+    else el.textContent = p ? (p.name + '님 차례' + (cueName ? ' (' + cueName + ')' : '')) : '';
   }
 
   function syncViewFromRoom() {
@@ -4106,7 +4135,7 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
       (function (btn) {
         btn.addEventListener('click', function () {
           if (!App.room || !App.room.isHost) return;
-          App.room.setConfig({ mode: btn.dataset.mode, variant: btn.dataset.variant || '1v1', maxPlayers: (btn.dataset.mode === '4ball' ? 2 : (btn.dataset.variant === 'ffa' ? 4 : 2)) });
+          App.room.setConfig({ mode: btn.dataset.mode, variant: btn.dataset.variant || '1v1', maxPlayers: (btn.dataset.variant === 'ffa' ? 4 : 2) });
         });
       })(lmp.children[m]);
     }
@@ -4268,7 +4297,7 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
     var room = new BA.net.Room({
       mode: App.mode,
       variant: App.variant,
-      maxPlayers: App.mode === '4ball' ? 2 : (App.variant === 'ffa' ? 4 : 2),
+      maxPlayers: App.variant === 'ffa' ? 4 : 2,
       name: name,
       handlers: {
         status: function (s) {
@@ -4376,15 +4405,16 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
       if (g) {
         var table = P.TABLES[g.table];
         var myTurn = App.room.room.game.turn === App.room.mySeat();
+        var mySeat = App.room.mySeat();
         var scene = {
           table: table,
           balls: App.view,
-          cueId: R.cueIdFor(g, App.room.mySeat()),
+          cueId: R.cueIdFor(g, myTurn ? mySeat : g.turn),
           aim: (App.aim && App.aim.power > 0.005 && !App.animating) ? { angle: App.aim.angle, power: App.aim.power } : null,
           showGuide: App.guide && myTurn,
           showCue: App.guide && myTurn,
           guideColor: myTurn ? 'rgba(255,214,102,0.8)' : null,
-          highlightCue: myTurn,
+          highlightCue: true,
           placeMode: (g.ballsInHand && myTurn && App.placePreview) ? App.placePreview : null
         };
         App.renderer.drawScene(scene);

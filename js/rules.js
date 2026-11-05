@@ -1,7 +1,10 @@
 /* Billiards Arena — game rules
  * Two games:
- *   4ball  : Korean four-ball carom (사구). 1 vs 1 only — the real game has two
- *            cue balls, one per player, so a 3-4 player version cannot exist.
+ *   4ball  : Korean four-ball carom (사구). 1v1 uses the simplified house
+ *            rules shown in the app. 3-4 players share the two cue balls in a
+ *            clearly-labelled app-only score variant (state.ffa): seat 0/2
+ *            shoot the white cue, seat 1/3 the yellow one. It is NOT the
+ *            standard two-player carom game and must never be presented as one.
  *   8ball  : pocket billiards. 1v1 uses the standard solids/stripes + 8-ball
  *            rules (simplified: no called shots). 3-4 players use a separate
  *            individual score mode, clearly marked as this app's own variant.
@@ -75,6 +78,7 @@
         balls: setup4Ball(),
         phase: 'aim',
         turn: 0,
+        ffa: false,
         scores: { 0: 0, 1: 0 },
         shotNo: 0,
         message: '내 공으로 빨간 두 공을 모두 맞히면 1점! (쿠션을 먼저 맞히면 2점)',
@@ -173,6 +177,10 @@
       state.message = msg + ' 🏆 ' + target + '점 달성, 승리!';
     } else {
       if (!keepTurn) state.turn = (seat + 1) % playerCount;
+      if (state.ffa && !keepTurn) {
+        var nextCue = cueIdFor(state, state.turn);
+        msg += ' (다음 수구: ' + (nextCue === 'white' ? '흰 공' : '노란 공') + ')';
+      }
       state.message = msg;
     }
     state.details = {
@@ -402,7 +410,10 @@
   }
 
   function cueIdFor(state, seat) {
-    if (state.mode === '4ball') return seat === 0 ? 'white' : 'yellow';
+    if (state.mode === '4ball') {
+      if (state.ffa) return seat % 2 === 0 ? 'white' : 'yellow';
+      return seat === 0 ? 'white' : 'yellow';
+    }
     return 'cue';
   }
 

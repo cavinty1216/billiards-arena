@@ -158,7 +158,8 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 800; }
 }
 .pill.live { color: #8ef0bf; background: rgba(26, 158, 108, 0.16); border-color: rgba(26, 158, 108, 0.45); }
 
-.mode-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.mode-picker { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.mode-picker.three-col { grid-template-columns: repeat(3, 1fr); }
 .mode-btn {
   border-radius: 13px;
   padding: 11px 8px;

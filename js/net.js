@@ -522,7 +522,7 @@
         phase: r.game.phase, turn: r.game.turn, scores: r.game.scores,
         groups: r.game.groups, shotNo: r.game.shotNo, message: r.game.message,
         winner: r.game.winner, ballsInHand: r.game.ballsInHand,
-        details: r.game.details, target: r.game.target
+        details: r.game.details, target: r.game.target, ffa: !!r.game.ffa
       } : null
     };
   };
@@ -561,7 +561,8 @@
     r.started = true;
     r.game = BA.rules.newGameState(r.mode);
     r.variant = r.players.length > 2 ? 'ffa' : r.variant;
-    r.maxPlayers = r.mode === '4ball' ? 2 : (r.maxPlayers || 4);
+    r.maxPlayers = r.players.length > 2 ? 4 : (r.mode === '4ball' ? 2 : (r.maxPlayers || 2));
+    if (r.mode === '4ball') r.game.ffa = r.players.length > 2;
     r.game.turn = 0;
     r.game.target = r.mode === '4ball' ? 7 : (r.players.length > 2 ? 9 : 0);
     r.players.forEach(function (p) { p.ready = true; });
@@ -574,6 +575,7 @@
     if (!this.isHost || !this.room) return;
     var r = this.room;
     r.game = BA.rules.newGameState(r.mode);
+    if (r.mode === '4ball') r.game.ffa = r.players.length > 2;
     r.game.turn = 0;
     r.game.target = r.mode === '4ball' ? 7 : (r.players.length > 2 ? 9 : 0);
     r.seq++;

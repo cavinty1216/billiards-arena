@@ -171,7 +171,7 @@
       var sub = '';
       if (g && room.room.mode === '8ball' && groups && groups[p.seat]) sub = groups[p.seat] === 'solid' ? '솔리드' : '스트라이프';
       else if (g && room.room.mode === '8ball' && room.room.variant === '1v1' && !groups[0] && !groups[1]) sub = '그룹 미정';
-      else if (room.room.mode === '4ball') sub = p.seat === 0 ? '흰 공' : '노란 공';
+      else if (room.room.mode === '4ball') sub = (p.seat % 2 === 0) ? '흰 공' : '노란 공';
       html += '<div class="player-chip' + (active ? ' active' : '') + (!p.connected ? ' offline' : '') + '">' +
         '<span class="pc-dot" style="background:' + seatColor(p.seat) + '"></span>' +
         '<span class="pc-name">' + esc(p.name) + (isMe ? ' (나)' : '') + '</span>' +
@@ -223,6 +223,7 @@
   }
 
   function ruleNote(mode, variant) {
+    if (mode === '4ball' && variant === 'ffa') return '★ 이 앱의 별도 변형 (정식 사구 아님) ★ 수구 2개를 나눠 쓰는 3~4인 개인전: 빨간 두 공 맞히기 1점·쿠션 먼저 2점, 7점 승리.';
     if (mode === '4ball') return '사구는 2인 전용 경기예요. 두 빨간 공을 모두 맞히면 1점(쿠션 먼저 2점), 7점 승리.';
     if (variant === '1v1') return '1:1 정식 룰에 가까운 8볼 — 솔리드/스트라이프 그룹을 정하고 마지막에 8번 공.';
     return '★ 이 앱의 별도 점수전 변형 (정식 규칙 아님) ★ 3~4명이 각자 개인전으로, 공 1개=1점·8번=3점, 9점 승리.';
@@ -231,7 +232,16 @@
   /* --------------------------------------------------------- rules sheet */
   function rulesHtml(mode, variant) {
     var h = '';
-    if (mode === '4ball') {
+    if (mode === '4ball' && variant === 'ffa') {
+      h += '<h3>사구 스코어전 3~4인 — 이 앱의 변형</h3>' +
+        '<p class="note">정식 사구는 수구 2개를 쓰는 2인 게임이라 3~4인 규칙이 존재하지 않아요. 아래는 이 앱만의 개인전 규칙입니다.</p><ul>' +
+        '<li>수구 2개를 나눠 씁니다: 1·3번 참가자는 <b>흰 공</b>, 2·4번 참가자는 <b>노란 공</b></li>' +
+        '<li>내 차례마다 화면에서 노란 테두리로 표시되는 <b>내 수구</b>를 치세요 (스코어바에도 이번 차례의 수구가 표시됨)</li>' +
+        '<li>내 수구로 빨간 공 2개를 모두 맞히면 <b>1점</b> · 쿠션을 먼저 맞히고 나서 두 개 모두 맞히면 <b>2점</b></li>' +
+        '<li>성공 시 한 번 더 · 실패 시 다음 사람</li>' +
+        '<li>다른 사람의 수구나 상대 수구를 맞혀도 반칙 아님 (1:1 사구의 단순화 규칙과 같음)</li>' +
+        '<li><b>7점</b> 먼저 달성한 사람 승리</li></ul>';
+    } else if (mode === '4ball') {
       h += '<h3>사구(4구) — 2인 전용</h3><ul>' +
         '<li>내 공(흰/노란)으로 빨간 공 2개를 한 번에 모두 맞히면 <b>1점</b></li>' +
         '<li>쿠션을 먼저 맞히고 나서 두 개 모두 맞히면 <b>2점</b></li>' +
@@ -260,7 +270,7 @@
     var r = App.room && App.room.room;
     var mode = r ? r.mode : App.mode;
     var variant = r ? (r.variant || '1v1') : App.variant;
-    $('rules-title').textContent = mode === '4ball' ? '사구 규칙' : (variant === '1v1' ? '8볼 1:1 규칙' : '8볼 스코어전 규칙');
+    $('rules-title').textContent = mode === '4ball' ? (variant === 'ffa' ? '사구 스코어전 규칙' : '사구 규칙') : (variant === '1v1' ? '8볼 1:1 규칙' : '8볼 스코어전 규칙');
     $('rules-body').innerHTML = rulesHtml(mode, variant);
     $('rules-overlay').hidden = false;
   }
@@ -427,11 +437,12 @@
     var g = r.game;
     var p = r.players[g.turn];
     var mine = p && p.id === room.me.id;
+    var cueName = (g.mode === '4ball' && g.ffa) ? ((g.turn % 2 === 0) ? '흰 공' : '노란 공') : null;
     el.style.display = '';
     el.className = 'turn-banner' + (mine ? ' mine' : '');
     if (g.ballsInHand) el.textContent = mine ? '큐볼을 테이블에 놓으세요 (원하는 곳을 누르기)' : p.name + '님이 큐볼을 놓는 중';
-    else if (mine) el.textContent = '내 차례 — 조준해서 치세요';
-    else el.textContent = p ? (p.name + '님 차례') : '';
+    else if (mine) el.textContent = cueName ? ('내 차례 — ' + cueName + ' 수구로 조준하세요') : '내 차례 — 조준해서 치세요';
+    else el.textContent = p ? (p.name + '님 차례' + (cueName ? ' (' + cueName + ')' : '')) : '';
   }
 
   function syncViewFromRoom() {
@@ -762,7 +773,7 @@
       (function (btn) {
         btn.addEventListener('click', function () {
           if (!App.room || !App.room.isHost) return;
-          App.room.setConfig({ mode: btn.dataset.mode, variant: btn.dataset.variant || '1v1', maxPlayers: (btn.dataset.mode === '4ball' ? 2 : (btn.dataset.variant === 'ffa' ? 4 : 2)) });
+          App.room.setConfig({ mode: btn.dataset.mode, variant: btn.dataset.variant || '1v1', maxPlayers: (btn.dataset.variant === 'ffa' ? 4 : 2) });
         });
       })(lmp.children[m]);
     }
@@ -924,7 +935,7 @@
     var room = new BA.net.Room({
       mode: App.mode,
       variant: App.variant,
-      maxPlayers: App.mode === '4ball' ? 2 : (App.variant === 'ffa' ? 4 : 2),
+      maxPlayers: App.variant === 'ffa' ? 4 : 2,
       name: name,
       handlers: {
         status: function (s) {
@@ -1032,15 +1043,16 @@
       if (g) {
         var table = P.TABLES[g.table];
         var myTurn = App.room.room.game.turn === App.room.mySeat();
+        var mySeat = App.room.mySeat();
         var scene = {
           table: table,
           balls: App.view,
-          cueId: R.cueIdFor(g, App.room.mySeat()),
+          cueId: R.cueIdFor(g, myTurn ? mySeat : g.turn),
           aim: (App.aim && App.aim.power > 0.005 && !App.animating) ? { angle: App.aim.angle, power: App.aim.power } : null,
           showGuide: App.guide && myTurn,
           showCue: App.guide && myTurn,
           guideColor: myTurn ? 'rgba(255,214,102,0.8)' : null,
-          highlightCue: myTurn,
+          highlightCue: true,
           placeMode: (g.ballsInHand && myTurn && App.placePreview) ? App.placePreview : null
         };
         App.renderer.drawScene(scene);
